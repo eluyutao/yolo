@@ -1,2 +1,2 @@
 # yolo
-An algorithmic trading system, from scratch
+An algorithmic trading system
