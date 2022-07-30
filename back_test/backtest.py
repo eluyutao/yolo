@@ -128,10 +128,7 @@ def run_backtest(db_conn, stock, start_date, end_date, cash=100000.0, opt=False,
         cerebro.plot()
 
 if __name__ == '__main__':
-
-    training = 0
-
-    conn = sqlite3.connect(config.DB_FILE)
+ conn = sqlite3.connect(config.DB_FILE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     # print('--- executing sql query ---')
