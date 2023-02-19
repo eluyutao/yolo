@@ -1,6 +1,7 @@
 from polygon import RESTClient
 import sqlite3
 from tqdm import tqdm
+import pickle
 
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -12,11 +13,19 @@ import pandas as pd
 
 
 ###### get list of SP500 symbols ######
-data = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
-table = data[0]
-stock_list = table['Symbol'].values.tolist()
+# data = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
+# table = data[0]
+# stock_list = table['Symbol'].values.tolist()
 
-already_data_in_database = True
+with open("../Analysis/screener/optionable_ticker_for_val", "rb") as f:
+    stock_list = pickle.load(f)
+print(len(stock_list))
+
+
+# test
+stock_list = ['AAPL']
+
+already_data_in_database = False
 if already_data_in_database:
     connection = sqlite3.connect("E:\databases\yolo.db")
     cursor = connection.cursor()
@@ -78,7 +87,7 @@ for ticker in tqdm(stock_list):
         
         for index, row in df.iterrows():
             cursor.execute("""
-                INSERT INTO stock_price_minute (id, symbol, datetime, open, high, low, close, volume, trxn)
+                INSERT INTO stock_price_minute_optionable (id, symbol, datetime, open, high, low, close, volume, trxn)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (i, ticker, row['time'].tz_localize(None).isoformat(), row['open'], row['high'], row['low'], row['close'], row['volume'], row['transactions']))
             i += 1
