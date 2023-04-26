@@ -1,5 +1,6 @@
 from datetime import datetime
 import pytz
+import sys
 
 EST = pytz.timezone('US/Eastern')
 UTC = pytz.utc
@@ -17,6 +18,8 @@ def est_ts_2_utc_unix_milli(ts):
             ts = datetime.strptime(ts, '%Y-%m-%d %H:%M:%S')
         elif len(ts) == 10:
             ts = datetime.strptime(ts, '%Y-%m-%d')
+        else:
+            raise ValueError('Wrong input format: expected a string with length 10 or 19.')
     utc_ts = ts.astimezone(UTC)
     return int(datetime.timestamp(utc_ts)*1000)
 

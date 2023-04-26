@@ -36,25 +36,29 @@ def get_ticker_for_day(dt):
     finalTickerList = sorted(list(set(usTickers)))
     return finalTickerList
 
-def get_ticker_price(ticker, freq, est_start_time, est_end_time):
+def get_ticker_price(ticker, freq, est_start_time, est_end_time, multiplier=1, limit=5000):
     '''
     freq: "minute", "day.."
     '''
     start_time = est_ts_2_utc_unix_milli(est_start_time)
     end_time   = est_ts_2_utc_unix_milli(est_end_time)
-    aggs = client.get_aggs(ticker, 1, freq, start_time, end_time, limit=5000)
+    aggs = client.get_aggs(ticker, multiplier, freq, start_time, end_time, limit=limit)
     tmp_lst = []
     for bar in aggs:
         row = [bar.timestamp,
-                utc_unix_milli_2_est_ts(bar.timestamp / 1000),
+                utc_unix_milli_2_est_ts(bar.timestamp),
                 bar.open, bar.high, bar.low, bar.close,
                 bar.volume, bar.vwap, bar.transactions, bar.otc]
         tmp_lst.append(row)
     df = pd.DataFrame(tmp_lst, columns=['unix_ts', 'timestamp', 'open', 'high', 'low','close', 'volume', 'vwap', 'transactions', 'otc'])
-    
+    return df
 
 if __name__ == '__main__':
-    aggs = client.get_aggs('AAPL', 1, "minute", '2023-04-23', '2023-04-24', limit=5000)
+    aggs = get_ticker_price('AAPL', "minute", '2023-04-20 09:30:01', '2023-04-24 09:33:00')
     print(type(aggs))
-    for a in aggs:
-        print(a)
+    # for a in aggs:
+    #     print(a)
+    aggs2 = get_ticker_price('AAPL', "minute", '2023-04-19', '2023-04-24 20:00:00')
+    aggs3 = get_ticker_price('AAPL', "day", '2023-04-19', '2023-04-24')
+
+
