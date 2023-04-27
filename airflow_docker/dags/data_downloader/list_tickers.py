@@ -2,7 +2,10 @@ from polygon import RESTClient
 import pandas as pd
 from tqdm import tqdm
 from datetime import datetime
-from utils import *
+try:
+    from data_downloader.utils import *
+except:
+    from utils import *
 
 
 
@@ -50,15 +53,12 @@ def get_ticker_price(ticker, freq, est_start_time, est_end_time, multiplier=1, l
                 bar.open, bar.high, bar.low, bar.close,
                 bar.volume, bar.vwap, bar.transactions, bar.otc]
         tmp_lst.append(row)
-    df = pd.DataFrame(tmp_lst, columns=['unix_ts', 'timestamp', 'open', 'high', 'low','close', 'volume', 'vwap', 'transactions', 'otc'])
+    df = pd.DataFrame(tmp_lst, columns=['unix_ts', 'ts', 'open', 'high', 'low','close', 'volume', 'vwap', 'transactions', 'otc'])
     return df
 
 if __name__ == '__main__':
-    aggs = get_ticker_price('AAPL', "minute", '2023-04-20 09:30:01', '2023-04-24 09:33:00')
-    print(type(aggs))
-    # for a in aggs:
-    #     print(a)
-    aggs2 = get_ticker_price('AAPL', "minute", '2023-04-19', '2023-04-24 20:00:00')
-    aggs3 = get_ticker_price('AAPL', "day", '2023-04-19', '2023-04-24')
+    # aggs = get_ticker_price('AAPL', "minute", '2023-04-20 09:30:01', '2023-04-24 09:33:00')
+    # aggs2 = get_ticker_price('AAPL', "minute", '2023-04-19', '2023-04-24 20:00:00')
+    # aggs3 = get_ticker_price('AAPL', "day", '2023-04-19', '2023-04-24')
 
-
+    get_ticker_for_day('2023-04-19')

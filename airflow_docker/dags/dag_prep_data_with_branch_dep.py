@@ -14,7 +14,7 @@ default_args = {
     'retry_delay': timedelta(minutes=5)
 }
 
-@dag(dag_id='daily_stock_downloader_v11', 
+@dag(dag_id='daily_stock_downloader_v21', 
      default_args=default_args, 
      start_date=datetime(2023, 4, 21), 
      schedule_interval='@daily')
@@ -33,7 +33,6 @@ def daily_etl():
 
     @task.branch(task_id="evaluate_market_status")
     def branch_func(dt):
-        # xcom_value = int(ti.xcom_pull(task_ids="start_task"))
         if dt >= 5:
             return "get_daily_stock_list" # run just this one task, skip all else
         elif dt >0 :
