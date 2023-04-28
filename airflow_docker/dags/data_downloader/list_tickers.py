@@ -48,17 +48,20 @@ def get_ticker_price(ticker, freq, est_start_time, est_end_time, multiplier=1, l
     aggs = client.get_aggs(ticker, multiplier, freq, start_time, end_time, limit=limit)
     tmp_lst = []
     for bar in aggs:
-        row = [bar.timestamp,
+        row = [ticker,
                 utc_unix_milli_2_est_ts(bar.timestamp),
                 bar.open, bar.high, bar.low, bar.close,
                 bar.volume, bar.vwap, bar.transactions, bar.otc]
         tmp_lst.append(row)
-    df = pd.DataFrame(tmp_lst, columns=['unix_ts', 'ts', 'open', 'high', 'low','close', 'volume', 'vwap', 'transactions', 'otc'])
+    # time_col = 'dt' if freq == 'day' else 'ts'
+    df = pd.DataFrame(tmp_lst, columns=['ticker', 'date_time', 'open_price', 'high_price', 'low_price','close_price', 
+                                        'volume', 'vwap', 'transactions', 'otc'])
     return df
 
 if __name__ == '__main__':
     # aggs = get_ticker_price('AAPL', "minute", '2023-04-20 09:30:01', '2023-04-24 09:33:00')
     # aggs2 = get_ticker_price('AAPL', "minute", '2023-04-19', '2023-04-24 20:00:00')
-    # aggs3 = get_ticker_price('AAPL', "day", '2023-04-19', '2023-04-24')
+    aggs2 = get_ticker_price('A', "day", '2023-04-24', '2023-04-25')
+    aggs3 = get_ticker_price('A', "day", '2023-04-25', '2023-04-26')
 
-    get_ticker_for_day('2023-04-19')
+    # get_ticker_for_day('2023-04-19')
