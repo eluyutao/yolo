@@ -3,6 +3,7 @@ import pytz
 import sys
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy import table, column
+import pendulum
 
 EST = pytz.timezone('US/Eastern')
 UTC = pytz.utc
@@ -44,17 +45,26 @@ def utc_unix_milli_2_est_ts(unix):
     date = datetime.fromtimestamp(unix/1000, UTC)
     return date.astimezone(EST)
 
+# this function has some issue
 def est_ts_2_utc_unix_milli(ts):
+
+    print('inside est_ts_2_utc_unix_milli, ts = ', ts)
     if type(ts) == str:
         if len(ts) == 19:
-            ts = datetime.strptime(ts, '%Y-%m-%d %H:%M:%S')
+            ts = pendulum.parse(ts, tz='US/Eastern')
         elif len(ts) == 10:
-            ts = datetime.strptime(ts, '%Y-%m-%d')
+            # ts = datetime.strptime(ts, '%Y-%m-%d')
+            ts = pendulum.parse(ts, tz='US/Eastern')
+            print('step2 ---------', ts)
         else:
             raise ValueError('Wrong input format: expected a string with length 10 or 19.')
-    utc_ts = ts.astimezone(UTC)
-    return int(datetime.timestamp(utc_ts)*1000)
+    utc_ts = ts.in_tz('UTC')
+    print('step 3 --------', utc_ts)
+    r = int(datetime.timestamp(utc_ts)*1000)
+    print('step 4 ---------', r)
+    return r
 
 
 if __name__ == '__main__':
-    a = est_ts_2_utc_unix_milli(ts='2022-07-03 06:02:34')
+    a = est_ts_2_utc_unix_milli(ts='2023-04-24')
+    print(a)

@@ -14,26 +14,34 @@ import pandas as pd
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
-from data_downloader.utils import insert_do_nothing_on_conflicts
-from data_downloader.list_tickers import get_ticker_for_day, get_ticker_price
+try:
+    from data_downloader.utils import insert_do_nothing_on_conflicts
+    from data_downloader.list_tickers import get_ticker_for_day, get_ticker_price
+except:
+    from utils import insert_do_nothing_on_conflicts
+    from list_tickers import get_ticker_for_day, get_ticker_price
 
 default_args = {
     'owner': 'Lucas',
     'retries': 5,
     'retry_delay': timedelta(minutes=1),
-    'depends_on_past':True
+    'depends_on_past':False
 }
 
-@dag(dag_id='daily_stock_downloader_v49', 
+@dag(dag_id='daily_stock_downloader_not_depends_on_past_v0001', 
      default_args=default_args, 
-     start_date=pendulum.datetime(2023, 4, 24, tz="US/Eastern"), 
+     start_date=pendulum.datetime(2023, 1, 1, tz="US/Eastern"), 
      schedule_interval='0 22 * * Mon-Fri')
 def daily_etl():
 
     def get_ts():
         # ds is the logical date (or execution date), which is the interval start time + interval
         # e.g. if interval is 04-02 00:00:00 to 04-02 23:59:59, then logical date is 04-03 00:00:00 to ensure capture all the data in 04-02
-        return get_current_context()['ts']
+        # foramt of ts: 2023-04-25T02:00:00+00:00
+        utc_time = get_current_context()['ts']
+        # est_time = pendulum.from_format(utc_time, 'YYYY-MM-DDTHH:MM:SS', tz='US/Eastern')
+        est_time = pendulum.parse(utc_time).in_tz('US/Eastern')
+        return str(est_time)
     
     @task()
     def get_daily_stock_list():
@@ -62,16 +70,18 @@ def daily_etl():
                 );
             """
         )
-
+    
     @task(trigger_rule='one_success')
     def start_download(stock_list):
         print("start_download running")
-
+        # import pdb; pdb.set_trace()
+        
         ts = get_ts()
-        start_time = ds_add(ts[:10],-1)
-        end_time = ts[:10]
+        print(f"start_download is running!!!!!!!!!! logical timestamp is " + ts)
+        start_time = ts[:10]
+        end_time = ds_add(ts[:10], 1)
         df_lst = []
-        for s in tqdm(stock_list[:1], position=0, leave=True):
+        for s in tqdm(stock_list, position=0, leave=True):
             print(f'start_time (est) is {start_time}',
                   f'end_time (est) is {end_time}')
             df = get_ticker_price(s, 'day', start_time, end_time)
@@ -89,8 +99,13 @@ def daily_etl():
     dl = start_download(stock_list)
   
     stock_list >> create_postgres_table >> dl
+    # stock_list >> dl
+
 
 greet_dag = daily_etl()
 
 
 
+if __name__ == "__main__":
+    greet_dag = daily_etl()
+    greet_dag.test(pendulum.datetime(2023, 4, 24, 22, 0, 0, tz="US/Eastern"))

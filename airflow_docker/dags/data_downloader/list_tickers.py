@@ -1,11 +1,15 @@
 from polygon import RESTClient
+from polygon.exceptions import NoResultsError
 import pandas as pd
 from tqdm import tqdm
 from datetime import datetime
 try:
     from data_downloader.utils import *
 except:
-    from utils import *
+    try:
+        from utils import *
+    except:
+        from dags.data_downloader.utils import *
 
 
 
@@ -43,9 +47,22 @@ def get_ticker_price(ticker, freq, est_start_time, est_end_time, multiplier=1, l
     '''
     freq: "minute", "day.."
     '''
+    print(est_start_time)
+    # import pdb; pdb.set_trace()
     start_time = est_ts_2_utc_unix_milli(est_start_time)
+    print(start_time)
     end_time   = est_ts_2_utc_unix_milli(est_end_time)
-    aggs = client.get_aggs(ticker, multiplier, freq, start_time, end_time, limit=limit)
+    print(f'parameters used: ticker={ticker}, multiplier={multiplier}, freq={freq}, start_time={start_time}, \
+          end_time={end_time},limit={limit}')
+    try:
+        aggs = client.get_aggs(ticker, multiplier, freq, start_time, end_time, limit=limit)
+    except NoResultsError as e:
+        print(f'no results for ticker={ticker}, multiplier={multiplier}, freq={freq}, start_time={start_time}, \
+          end_time={end_time},limit={limit}')
+        print(e)
+        return pd.DataFrame([], columns=['ticker', 'date_time', 'open_price', 'high_price', 'low_price','close_price', 
+                                        'volume', 'vwap', 'transactions', 'otc'])
+    print(aggs)
     tmp_lst = []
     for bar in aggs:
         row = [ticker,
@@ -61,7 +78,7 @@ def get_ticker_price(ticker, freq, est_start_time, est_end_time, multiplier=1, l
 if __name__ == '__main__':
     # aggs = get_ticker_price('AAPL', "minute", '2023-04-20 09:30:01', '2023-04-24 09:33:00')
     # aggs2 = get_ticker_price('AAPL', "minute", '2023-04-19', '2023-04-24 20:00:00')
-    aggs2 = get_ticker_price('A', "day", '2023-04-24', '2023-04-25')
-    aggs3 = get_ticker_price('A', "day", '2023-04-25', '2023-04-26')
+    # aggs2 = get_ticker_price('A', "day", '2023-01-03', '2023-01-04')
+    aggs3 = get_ticker_price('ADAL', "day", '2023-01-02', '2023-01-03')
 
     # get_ticker_for_day('2023-04-19')
