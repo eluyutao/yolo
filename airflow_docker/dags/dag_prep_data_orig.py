@@ -28,10 +28,12 @@ default_args = {
     'depends_on_past':False
 }
 
-@dag(dag_id='daily_stock_downloader_not_depends_on_past_v0001', 
+@dag(dag_id='daily_stock_downloader_not_depends_on_past_v0002', 
      default_args=default_args, 
-     start_date=pendulum.datetime(2023, 1, 1, tz="US/Eastern"), 
-     schedule_interval='0 22 * * Mon-Fri')
+     start_date=pendulum.datetime(2022, 12, 27, tz="US/Eastern"), 
+     schedule_interval='0 22 * * Mon-Fri',
+     concurrency=32,
+     max_active_runs=32)
 def daily_etl():
 
     def get_ts():
@@ -73,14 +75,25 @@ def daily_etl():
     
     @task(trigger_rule='one_success')
     def start_download(stock_list):
-        print("start_download running")
-        # import pdb; pdb.set_trace()
-        
         ts = get_ts()
-        print(f"start_download is running!!!!!!!!!! logical timestamp is " + ts)
         start_time = ts[:10]
         end_time = ds_add(ts[:10], 1)
-        df_lst = []
+
+        postgres_hook = PostgresHook(postgres_conn_id="postgres_localhost", schema='datadl')
+        read_sql_df = postgres_hook.get_pandas_df(sql=f'''select exists(select 1
+                                                        from stock_price_daily 
+                                                        where date_time = '{start_time}') as exists
+                                                    ''')
+        # print('#####################\n',read_sql_df, '#####################\n')
+        print('read_sql_df.iloc[0,0] is : ', read_sql_df.iloc[0,0], 'with type ', type(read_sql_df.iloc[0,0]))
+        if read_sql_df.iloc[0,0]:
+            print(f'database already has record for date {start_time}')
+            return
+        
+        print("start_download running")
+        print(f"start_download is running!!!!!!!!!! logical timestamp is " + ts)
+        
+        df_lst = [pd.DataFrame([])]
         for s in tqdm(stock_list, position=0, leave=True):
             print(f'start_time (est) is {start_time}',
                   f'end_time (est) is {end_time}')
@@ -90,10 +103,10 @@ def daily_etl():
 
         df_all = pd.concat(df_lst, ignore_index=True)
 
-        postgres_hook = PostgresHook(postgres_conn_id="postgres_localhost", schema='datadl')
-        df_all.to_sql('stock_price_daily', postgres_hook.get_sqlalchemy_engine(), 
-                      if_exists='append', index=False, chunksize=1000,
-                      method=insert_do_nothing_on_conflicts)
+        if len(df_all) > 0:
+            df_all.to_sql('stock_price_daily', postgres_hook.get_sqlalchemy_engine(), 
+                        if_exists='append', index=False, chunksize=1000,
+                        method=insert_do_nothing_on_conflicts)
 
     stock_list = get_daily_stock_list()
     dl = start_download(stock_list)
