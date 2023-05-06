@@ -47,10 +47,10 @@ def get_ticker_price(ticker, freq, est_start_time, est_end_time, multiplier=1, l
     '''
     freq: "minute", "day.."
     '''
-    print(est_start_time)
+    # print(est_start_time)
     # import pdb; pdb.set_trace()
     start_time = est_ts_2_utc_unix_milli(est_start_time)
-    print(start_time)
+    # print(start_time)
     end_time   = est_ts_2_utc_unix_milli(est_end_time)
     print(f'parameters used: ticker={ticker}, multiplier={multiplier}, freq={freq}, start_time={start_time}, \
           end_time={end_time},limit={limit}')
@@ -62,7 +62,7 @@ def get_ticker_price(ticker, freq, est_start_time, est_end_time, multiplier=1, l
         print(e)
         return pd.DataFrame([], columns=['ticker', 'date_time', 'open_price', 'high_price', 'low_price','close_price', 
                                         'volume', 'vwap', 'transactions', 'otc'])
-    print(aggs)
+    # print(aggs)
     tmp_lst = []
     for bar in aggs:
         row = [ticker,
