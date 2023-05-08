@@ -73,7 +73,7 @@ def get_ticker_price(ticker, freq, est_start_time, est_end_time, multiplier=1, l
     # time_col = 'dt' if freq == 'day' else 'ts'
     df = pd.DataFrame(tmp_lst, columns=['ticker', 'date_time', 'open_price', 'high_price', 'low_price','close_price', 
                                         'volume', 'vwap', 'transactions', 'otc'])
-    return df
+    return df[df.date_time.astype(str).str[:10]==est_start_time]
 
 if __name__ == '__main__':
     # aggs = get_ticker_price('AAPL', "minute", '2023-04-20 09:30:01', '2023-04-24 09:33:00')
@@ -82,3 +82,12 @@ if __name__ == '__main__':
     aggs3 = get_ticker_price('ADAL', "day", '2023-01-02', '2023-01-03')
 
     # get_ticker_for_day('2023-04-19')
+    a = get_ticker_for_day('2020-01-02')
+    df_lst = []
+    for s in a:
+        # print(f'start_time (est) is {start_time}',
+        #         f'end_time (est) is {end_time}')
+        df = get_ticker_price(s, 'day', '2020-01-02', '2020-01-03')
+        df_lst.append(df)
+
+    df_all = pd.concat(df_lst, ignore_index=True)
