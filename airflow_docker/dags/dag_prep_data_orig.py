@@ -13,6 +13,13 @@ import pandas as pd
 
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+# from airflow.example_dags.plugins.workday import AfterWorkdayTimetable
+
+import sys
+sys.path.append('./../plugins')
+from workday import AfterWorkdayTimetable
+
+
 
 try:
     from data_downloader.utils import insert_do_nothing_on_conflicts
@@ -20,6 +27,8 @@ try:
 except:
     from utils import insert_do_nothing_on_conflicts
     from list_tickers import get_ticker_for_day, get_ticker_price
+
+from pandas.tseries.holiday import USFederalHolidayCalendar
 
 DB_CONN_ID = 'postgres_win_remote'
 
@@ -49,8 +58,8 @@ def get_ts():
 @task()
 def get_daily_stock_list():
     ts = get_ts() 
-    # dt = ds_add(ts[:10],-1) # 01-01
-    dt = ts[:10] # 01-01
+    dt = ds_add(ts[:10], 1) # 01-01
+    # dt = ts[:10] # 01-01
 
     print(f" ---------------- get_daily_stock() is running for {dt}")
     return get_ticker_for_day(dt)
@@ -66,8 +75,14 @@ def start_download(stock_list, dim='day'):
         tb_nm = 'stock_price_minute'
 
     ts = get_ts()
-    start_time = ts[:10]
-    end_time = ds_add(ts[:10], 1)
+    start_time = ds_add(ts[:10], 1)
+    end_time = ds_add(ts[:10], 2)
+
+    holiday_calendar = USFederalHolidayCalendar()
+    hols = [str(x)[:10] for x in holiday_calendar.holidays('2010-01-01','2050-12-31')]
+    if end_time in hols:
+        print(f'--------- {end_time} is a holiday')
+        return
 
     postgres_hook = PostgresHook(postgres_conn_id=DB_CONN_ID, schema='datadl')
     read_sql_df = postgres_hook.get_pandas_df(sql=f'''select exists(
@@ -80,7 +95,7 @@ def start_download(stock_list, dim='day'):
 
     # print('read_sql_df.iloc[0,0] is : ', read_sql_df.iloc[0,0], 'with type ', type(read_sql_df.iloc[0,0]))
     if read_sql_df.iloc[0,0]:
-        print(f'database already has record for date {start_time}')
+        print(f'--------- database already has record for date {start_time}')
         return
     
     print(f"start_download is running!!!!!!!!!! logical timestamp is " + ts)
@@ -97,7 +112,7 @@ def start_download(stock_list, dim='day'):
     # if no data is returned for all tickers on that day (due to holiday), then don't do anything
     if len(df_all) > 0:
         postgres_hook = PostgresHook(postgres_conn_id=DB_CONN_ID, schema='datadl')
-        print("---------------- start writing table to postegresql database ----------------")
+        print(f"---------------- start writing {df_all.ticker.nunique()} tickers on date {list(df_all.date_time.astype(str).str[:10].unique())} to postegresql database ----------------")
         df_all.to_sql(tb_nm, postgres_hook.get_sqlalchemy_engine(), 
                     if_exists='append', index=False, chunksize=5000,
                     method=insert_do_nothing_on_conflicts)
@@ -109,15 +124,17 @@ def start_download(stock_list, dim='day'):
 @dag(dag_id='day_stock_downloader_v0002', 
      default_args=default_args, 
      start_date=pendulum.datetime(2020, 1, 1, tz="US/Eastern"), 
-     schedule_interval='0 22 * * Mon-Fri',
-     concurrency=16,
-     max_active_runs=16)
+     schedule_interval='0 22 * * Sun-Thu',
+    #  schedule = AfterWorkdayTimetable(),
+     concurrency=24,
+     max_active_runs=24)
 def day_price_dl():
     create_daily_postgres_table = PostgresOperator(
             task_id='create_daily_postgres_table',
             postgres_conn_id=DB_CONN_ID,
             sql="""
                 create table if not exists stock_price_daily (
+                    id SERIAL,
                     ticker character varying(10) not null,
                     date_time date not null,
                     open_price numeric,
@@ -142,7 +159,8 @@ def day_price_dl():
 @dag(dag_id='minute_stock_downloader_v0002', 
      default_args=default_args, 
      start_date=pendulum.datetime(2020, 1, 1, tz="US/Eastern"), 
-     schedule_interval='0 22 * * Mon-Fri',
+     schedule_interval='0 22 * * Sun-Thu',
+    #  schedule = AfterWorkdayTimetable(),
      concurrency=24,
      max_active_runs=24)
 def minute_price_dl():
