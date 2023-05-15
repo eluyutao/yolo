@@ -41,6 +41,7 @@ def minute_price_dl():
             postgres_conn_id=DB_CONN_ID,
             sql="""
                 create table if not exists stock_price_minute (
+                    id SERIAL,
                     ticker character varying(10) not null,
                     date_time timestamp with time zone not null,
                     open_price numeric,
@@ -54,6 +55,8 @@ def minute_price_dl():
                     PRIMARY KEY (ticker, date_time),
                     UNIQUE(ticker, date_time)
                 );
+                -- SELECT create_hypertable('stock_price_minute', 'date_time');
+
             """
         )
 

@@ -57,6 +57,7 @@ def day_price_dl():
                     PRIMARY KEY (ticker, date_time),
                     UNIQUE(ticker, date_time)
                 );
+                -- SELECT create_hypertable('stock_price_daily', 'date_time');
             """
         )
 
