@@ -43,7 +43,7 @@ def get_ticker_for_day(dt):
     finalTickerList = sorted(list(set(usTickers)))
     return finalTickerList
 
-def get_ticker_price(ticker, freq, est_start_time, est_end_time, multiplier=1, limit=5000):
+def get_ticker_price(ticker, freq, est_start_time, est_end_time, multiplier=1, limit=5000, one_day=True):
     '''
     freq: "minute", "day.."
     '''
@@ -73,7 +73,10 @@ def get_ticker_price(ticker, freq, est_start_time, est_end_time, multiplier=1, l
     # time_col = 'dt' if freq == 'day' else 'ts'
     df = pd.DataFrame(tmp_lst, columns=['ticker', 'date_time', 'open_price', 'high_price', 'low_price','close_price', 
                                         'volume', 'vwap', 'transactions', 'otc'])
-    return df[df.date_time.astype(str).str[:10]==est_start_time]
+    if one_day:
+        return df[df.date_time.astype(str).str[:10]==est_start_time]
+    else:
+        return df
 
 if __name__ == '__main__':
     # aggs = get_ticker_price('AAPL', "minute", '2023-04-20 09:30:01', '2023-04-24 09:33:00')
